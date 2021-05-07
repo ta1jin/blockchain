@@ -3,27 +3,30 @@ pragma experimental ABIEncoderV2;
 
 contract Owned{
     address payable private owner;
-    constructor(){
+    
+    constructor() public {
         owner = payable(msg.sender);
     }
+    
     modifier OnlyOwner{
         require(
             msg.sender == owner,
-            'Only owner can run this function'
+            'Only owner can run this function!'
             );
         _;
     }
+    
     function ChangeOwner(address payable newOwner) public OnlyOwner{
         owner = newOwner;
     }
+    
     function GetOwner() public returns (address){
         return owner;
     }
 }
 
-contract Test is Owned
-{
-    enum RequestType{NewHome, EditHome}
+contract ROSReestr is Owned{
+    enum RequestType {NewHome, EditHome}
     enum OwnerOperation {Add, Edit, Delete}
     uint private price = 100 wei;
     
@@ -32,9 +35,10 @@ contract Test is Owned
         string homeAddress;
         address owner;
         uint p;
-    }   
+    }
     
-    struct Owner{
+    struct Owner
+    {
         string name;
         uint passSer;
         uint passNum;
@@ -50,27 +54,31 @@ contract Test is Owned
         uint cost;
         bool isset;
     }
+    
     struct Request
     {
         RequestType requestType;
         OwnerOperation operation;
         string homeAddress;
         uint area;
+        uint cost;
         uint result;
         address adr;
-        uint cost;
         bool isProcessed;
     }
+    
     struct Employee
     {
-        string nameEmployee;
+        string name;
         string position;
         string phoneNumber;
         bool isset;
+        
     }
     
     mapping(address => Employee) private employees;
     mapping(address => Owner) private owners;
+    //key is request initiator
     mapping(address => Request) private requests;
     address[] requestInitiator;
     address[] ownersArray;
@@ -85,7 +93,7 @@ contract Test is Owned
     modifier OnlyEmployee {
         require(
             employees[msg.sender].isset != false,
-            'Only Employee can run this function'
+            'Only Employee can run this function!'
             );
         _;
     }
@@ -97,7 +105,6 @@ contract Test is Owned
             );
         _;
     }
-    
     
     function AddHome(string memory _adr, uint _area, uint _cost) public {
         Home memory h;
@@ -114,40 +121,41 @@ contract Test is Owned
         return (homes[adr].area, homes[adr].cost);
     }
     
-    function AddEmployee(address empl, string memory _nameEmployee, string memory _position, string memory _phoneNumber) public OnlyOwner{
+    function AddEmployee(address empl, string memory _name, string memory _pos, string memory _phone) public OnlyOwner{
         Employee memory e;
-        e.nameEmployee = _nameEmployee;
-        e.position = _position;
-        e.phoneNumber = _phoneNumber;
+        e.name = _name;
+        e.position = _pos;
+        e.phoneNumber = _phone;
         e.isset = true;
         employees[empl] = e;
-        
     }
     
-    function EditEmployee(address empl, string memory _nameEmployee, string memory _position, string memory _phoneNumber) public OnlyOwner{
-        employees[empl].nameEmployee = _nameEmployee;
-        employees[empl].position = _position;
-        employees[empl].phoneNumber = _phoneNumber;
+    function EditEmployee(address empl, string memory _name, string memory _pos, string memory _phone) public OnlyOwner{
+        employees[empl].name = _name;
+        employees[empl].position = _pos;
+        employees[empl].phoneNumber = _phone;
     }
     
-    function DeleteEmployee(address empl) public OnlyOwner returns(bool) {
-        if(employees[msg.sender].isset == true){
-        delete employees[empl];
-        return true;
+    function GetEmployee(address empl) public OnlyOwner returns (string memory _name, string memory _pos, string memory _phone){
+        return (employees[empl].name, employees[empl].position, employees[empl].phoneNumber);
+    }
+    
+    function DeleteEmployee(address empl) public OnlyOwner returns (bool)
+    {
+        if (employees[empl].isset == true){
+            delete employees[empl];
+            return true;
         }
         return false;
     }
     
-    function GetEmployee(address empl) public OnlyOwner returns (string memory _nameEmployee, string memory _position, string memory _phoneNumber){
-        return (employees[empl].nameEmployee, employees[empl].position, employees[empl].phoneNumber);
-    }
-    
-    function AddRequest(uint rType, string memory _homeAddress, uint _area, uint _cost, address newOwner) public Costs(price) payable returns (bool){
+    function AddRequest(uint rType, string memory adr, uint area, uint cost, address newOwner) public Costs(price) payable returns (bool)
+    {
         Request memory r;
-        r.requestType = rType ==0? RequestType.NewHome: RequestType.EditHome;
-        r.homeAddress = _homeAddress;
-        r.area = _area;
-        r.cost = _cost;
+        r.requestType = rType == 0? RequestType.NewHome: RequestType.EditHome;
+        r.homeAddress = adr;
+        r.area = area;
+        r.cost = cost;
         r.result = 0;
         r.adr = rType==0?address(0):newOwner;
         r.isProcessed = false;
@@ -157,7 +165,8 @@ contract Test is Owned
         return true;
     }
     
-    function GetRequest() public OnlyEmployee returns (uint[] memory, uint[] memory, string[] memory){
+    function GetRequest() public OnlyEmployee returns (uint[] memory, uint[] memory, string[] memory)
+    {
         uint[] memory ids = new uint[](requestInitiator.length);
         uint[] memory types = new uint[](requestInitiator.length);
         string[] memory homeAddresses = new string[](requestInitiator.length);
@@ -169,7 +178,7 @@ contract Test is Owned
         return (ids, types, homeAddresses);
     }
     
-     function GetListHome() public view returns (uint[] memory, uint[] memory, string[] memory)
+    function GetListHome() public view returns (uint[] memory, uint[] memory, string[] memory)
     {
         uint[] memory costss = new uint[](listHomeInitiator.length);
         uint[] memory areas = new uint[](listHomeInitiator.length);
@@ -185,6 +194,7 @@ contract Test is Owned
     function ProcessRequest(uint Id) public OnlyEmployee returns (uint){
         if(Id<0 || Id>=requestInitiator.length) return 1;
         Request memory r = requests[requestInitiator[Id]];
+        
         if(r.requestType == RequestType.NewHome && homes[r.homeAddress].isset){
             delete requests[requestInitiator[Id]];
             delete requestInitiator[Id];
@@ -201,7 +211,9 @@ contract Test is Owned
             ownerships[r.homeAddress].push(ownership);
         } else {
             //edit home
+            Home memory h = homes[r.homeAddress];
             //change ownership
+            
         }
         delete requests[requestInitiator[Id]];
         delete requestInitiator[Id];
@@ -216,36 +228,5 @@ contract Test is Owned
     function GetCost() public returns (uint)
     {
         return price;
-    }
- 
-    function AddOwnership(string memory _homeAddr, address _owner, uint _p) public{
-        Ownership memory o;
-        o.homeAddress = _homeAddr;
-        o.owner = _owner;
-        o.p = _p;
-        ownerships[_homeAddr].push(o);
-    }
-    
-    function DeleteOwnership(string memory _homeAddr, address _owner) public {
-        uint len = ownerships[_homeAddr].length;
-        uint temp;
-        for(uint i=0; i!= ownerships[_homeAddr].length; i++){
-            if(ownerships[_homeAddr][i].owner == _owner){
-                temp = i;
-            }
-        }
-        if(temp != ownerships[_homeAddr].length - 1){
-            ownerships[_homeAddr][temp];
-        }
-    }
-    
-    function GetOwnership(string memory _homeAddr) public returns (uint[] memory, address[] memory){
-        uint[] memory Op = new uint[](ownerships[_homeAddr].length);
-        address[] memory Oowner = new address[](ownerships[_homeAddr].length);
-        for(uint i=0; i!= ownerships[_homeAddr].length; i++){
-            Op[i] = ownerships[_homeAddr][i].p;
-            Oowner[i] = ownerships[_homeAddr][i].owner;
-        }
-        return (Op, Oowner);
     }
 }
